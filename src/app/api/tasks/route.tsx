@@ -12,10 +12,10 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { text } = body;
+  const { text,start_time } = body;
   const { rows } = await pool.query(
-    "INSERT INTO tasks (text, completed) VALUES ($1, false) RETURNING *",
-    [text]
+    "INSERT INTO tasks (text, completed, start_time) VALUES ($1, false, $2) RETURNING *",
+    [text , start_time || new Date()]
   );
   return NextResponse.json(rows[0]);
 }
@@ -33,12 +33,37 @@ export async function DELETE(req: Request) {
 
 export async function PATCH(req: Request) {
   const body = await req.json();
-  const { id, text, completed } = body;
+  const { id, text, completed, start_time } = body;
 
-  const { rows } = await pool.query(
-    "UPDATE tasks SET text = $1, completed = $2 WHERE id = $3 RETURNING *",
-    [text, completed, id]
-  );
+  const updates = [];
+  const values = [];
+  let idx = 1;
+
+  if (text !== undefined) {
+    updates.push(`text = $${idx++}`);
+    values.push(text);
+  }
+
+  if (completed !== undefined) {
+    updates.push(`completed = $${idx++}`);
+    values.push(completed);
+  }
+
+  if (start_time !== undefined) {
+    updates.push(`start_time = $${idx++}`);
+    values.push(start_time);
+  }
+
+  values.push(id); 
+
+  const query = `
+    UPDATE tasks SET ${updates.join(", ")}
+    WHERE id = $${idx}
+    RETURNING *
+  `;
+
+  const { rows } = await pool.query(query, values);
   return NextResponse.json(rows[0]);
 }
+
 
