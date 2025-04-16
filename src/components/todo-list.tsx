@@ -45,7 +45,7 @@ export default function TodoList() {
     const res = await fetch("/api/tasks", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...task, completed: !task.completed }),
+      body: JSON.stringify({ id: task.id, completed: !task.completed }),
     });
     const updated = await res.json();
     setTasks(tasks.map(t => t.id === id ? updated : t));
