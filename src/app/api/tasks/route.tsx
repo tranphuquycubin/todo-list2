@@ -12,10 +12,10 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { text,start_time } = body;
+  const { text,start_time,deadline } = body;
   const { rows } = await pool.query(
-    "INSERT INTO tasks (text, completed, start_time) VALUES ($1, false, $2) RETURNING *",
-    [text , start_time || new Date()]
+    "INSERT INTO tasks (text, completed, start_time,deadline) VALUES ($1, false, $2,$3) RETURNING *",
+    [text , start_time || new Date(), deadline || null]
   );
   return NextResponse.json(rows[0]);
 }
@@ -33,7 +33,7 @@ export async function DELETE(req: Request) {
 
 export async function PATCH(req: Request) {
   const body = await req.json();
-  const { id, text, completed, start_time } = body;
+  const { id, text, completed, start_time,deadline } = body;
 
   const updates = [];
   const values = [];
@@ -52,6 +52,10 @@ export async function PATCH(req: Request) {
   if (start_time !== undefined) {
     updates.push(`start_time = $${idx++}`);
     values.push(start_time);
+  }
+  if (deadline !== undefined) {
+    updates.push(`deadline = $${idx++}`);
+    values.push(deadline);
   }
 
   values.push(id); 

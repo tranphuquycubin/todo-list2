@@ -9,38 +9,42 @@ interface Task {
   text: string;
   completed: boolean;
   start_time?: string;
+  deadline?: string;
 }
 export default function TodoList() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState<string>("");
   const [editTaskId, setEditTaskId] = useState<number | null>(null);
   const [editTaskText, setEditTaskText] = useState<string>("");
-  const [newStartTime, setNewStartTime] = useState<string>(new Date().toISOString().slice(0, 16));
+  const [newStartTime, setNewStartTime] = useState<string>(
+    new Date().toISOString().slice(0, 16)
+  );
   const [editStartTime, setEditStartTime] = useState<string>("");
+  const [newDeadline, setNewDeadline] = useState<string>("");
+  const [editDeadline, setEditDeadline] = useState<string>("");
   useEffect(() => {
     fetch("/api/tasks")
       .then((res) => res.json())
       .then((data) => setTasks(data));
   }, []);
-  
+
   // Function to add a new task
   const addTask = async (): Promise<void> => {
     if (newTask.trim() === "") return;
     const res = await fetch("/api/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: newTask, start_time: newStartTime }),
+      body: JSON.stringify({ text: newTask, start_time: newStartTime,deadline: newDeadline }),
     });
     const newCreated = await res.json();
     setTasks([...tasks, newCreated]);
     setNewTask("");
     setNewStartTime(new Date().toISOString().slice(0, 16));
-    
+    setNewDeadline(new Date().toISOString().slice(0, 16));
   };
-  
- 
+
   const toggleCompletionStatus = async (id: number): Promise<void> => {
-    const task = tasks.find(t => t.id === id);
+    const task = tasks.find((t) => t.id === id);
     if (!task) return;
     const res = await fetch("/api/tasks", {
       method: "PATCH",
@@ -48,86 +52,102 @@ export default function TodoList() {
       body: JSON.stringify({ id: task.id, completed: !task.completed }),
     });
     const updated = await res.json();
-    setTasks(tasks.map(t => t.id === id ? updated : t));
+    setTasks(tasks.map((t) => (t.id === id ? updated : t)));
   };
-  
-  
-  const editTask = (id: number, text: string,  start_time?: string): void => {
+
+  const editTask = (id: number, text: string, start_time?: string,  deadline?: string): void => {
     setEditTaskId(id);
     setEditTaskText(text);
-    setEditStartTime(start_time?.slice(0, 16) || new Date().toISOString().slice(0, 16));
+    setEditStartTime(
+      start_time?.slice(0, 16) || new Date().toISOString().slice(0, 16)
+      
+    );
+    setEditDeadline(deadline?.slice(0, 16) || "");
+    
   };
 
   const updateTask = async (): Promise<void> => {
     if (editTaskText.trim() === "" || editTaskId === null) return;
-  
+
     const res = await fetch("/api/tasks", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id: editTaskId,
         text: editTaskText,
-        completed: tasks.find(t => t.id === editTaskId)?.completed || false,
+        completed: tasks.find((t) => t.id === editTaskId)?.completed || false,
         start_time: editStartTime,
+        deadline: editDeadline,
       }),
     });
-  
+
     const updated = await res.json();
-    setTasks(tasks.map(t => t.id === editTaskId ? updated : t));
+    setTasks(tasks.map((t) => (t.id === editTaskId ? updated : t)));
     setEditTaskId(null);
     setEditTaskText("");
     setEditStartTime("");
+    setEditDeadline("");
   };
-  
+
   const deleteTask = async (id: number): Promise<void> => {
     await fetch(`/api/tasks?id=${id}`, { method: "DELETE" });
-    setTasks(tasks.filter(t => t.id !== id));
+    setTasks(tasks.filter((t) => t.id !== id));
   };
-  
+
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
-      <div className="w-full max-w-md bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6">
-        <h1 className="text-2xl font-bold mb-4 text-purple-800 dark:text-gray-200">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="w-full max-w-4xl bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6">
+        <h1 className="text-3xl font-bold mb-6 text-purple-800 dark:text-gray-200">
           Todo List
         </h1>
-        <div className="flex flex-col md:flex-row items-center mb-4 space-y-2 md:space-y-0 md:space-x-2">
+  
+        {/* Form input task */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Input
             type="text"
             placeholder="Add a new task"
             value={newTask}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setNewTask(e.target.value)}
-            className="flex-1 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setNewTask(e.target.value)
+            }
+            className="col-span-1 md:col-span-1"
           />
           <input
             type="datetime-local"
             value={newStartTime}
             onChange={(e) => setNewStartTime(e.target.value)}
-            className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+            className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 col-span-1"
+          />
+          <input
+            type="datetime-local"
+            value={newDeadline}
+            onChange={(e) => setNewDeadline(e.target.value)}
+            className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 col-span-1"
           />
           <Button
             onClick={addTask}
-           className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md"
+            className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md col-span-1"
           >
             Add
           </Button>
         </div>
-
+  
         {/* List of tasks */}
-        <div className="space-y-2">
+        <div className="space-y-4">
           {tasks.map((task) => (
             <div
               key={task.id}
-              className="flex flex-col bg-gray-100 dark:bg-gray-700 rounded-md px-4 py-2"
+              className="flex flex-col bg-gray-100 dark:bg-gray-700 rounded-md px-4 py-3 min-h-[180px]"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center flex-1">
+              <div className="flex items-start justify-between flex-wrap gap-2">
+                <div className="flex items-start flex-1 gap-2">
                   <Checkbox
                     checked={task.completed}
-                    className="mr-2"
+                    className="mt-1"
                     onCheckedChange={() => toggleCompletionStatus(task.id)}
                   />
                   {editTaskId === task.id ? (
-                    <div className="flex flex-col flex-1 space-y-2">
+                    <div className="flex flex-col space-y-2 w-full">
                       <Input
                         type="text"
                         value={editTaskText}
@@ -147,41 +167,62 @@ export default function TodoList() {
                         onChange={(e) => setEditStartTime(e.target.value)}
                         className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
                       />
+                      <input
+                        type="datetime-local"
+                        value={editDeadline}
+                        onChange={(e) => setEditDeadline(e.target.value)}
+                        className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                      />
                     </div>
                   ) : (
                     <div className="flex flex-col">
                       <span
                         className={`text-gray-800 dark:text-gray-200 ${
-                          task.completed ? "line-through text-gray-500 dark:text-gray-400" : ""
+                          task.completed
+                            ? "line-through text-gray-500 dark:text-gray-400"
+                            : ""
                         }`}
                       >
                         {task.text}
                       </span>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Start: {task.start_time ? new Date(task.start_time).toLocaleString() : "N/A"}
+                        Start:{" "}
+                        {task.start_time
+                          ? new Date(task.start_time).toLocaleString()
+                          : "N/A"}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Deadline:{" "}
+                        {task.deadline
+                          ? new Date(task.deadline).toLocaleString()
+                          : "N/A"}
                       </p>
                     </div>
                   )}
                 </div>
-                <div className="flex items-center ml-2">
+  
+                {/* Buttons */}
+                <div className="flex items-center gap-2">
                   {editTaskId === task.id ? (
                     <Button
                       onClick={updateTask}
-                      className="bg-black hover:bg-slate-800 text-white font-medium py-1 px-2 rounded-md mr-2"
+                      className="bg-black hover:bg-slate-800 text-white font-medium py-1 px-3 rounded-md"
                     >
                       Save
                     </Button>
                   ) : (
                     <Button
-                      onClick={() => editTask(task.id, task.text, task.start_time)}
-                       className="bg-purple-300 hover:bg-purple-400 text-purple-900 dark:bg-purple-500 dark:hover:bg-purple-600 dark:text-white font-medium py-1 px-2 rounded-md mr-2"
+                      onClick={() =>
+                        editTask(task.id, task.text, task.start_time, task.deadline)
+                      }
+                      className="bg-purple-300 hover:bg-purple-400 text-purple-900 dark:bg-purple-500 dark:hover:bg-purple-600 dark:text-white font-medium py-1 px-3 rounded-md"
                     >
                       Edit
                     </Button>
                   )}
                   <Button
                     onClick={() => deleteTask(task.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white font-medium py-1 px-2 rounded-md"
+                    className="bg-red-500 hover:bg-red-600 text-white font-medium py-1 px-3 rounded-md"
                   >
                     Delete
                   </Button>
